@@ -100,14 +100,13 @@
 
     <div id="petals-container" class="fixed inset-0 pointer-events-none z-50 overflow-hidden"></div>
 
+    <!-- Hidden YouTube Player Container -->
+    <div id="youtube-player" class="hidden"></div>
+
     <div class="fixed top-5 right-5 z-50">
         <button id="musicToggleBtn" onclick="toggleAudio()" class="w-12 h-12 rounded-full bg-white/90 shadow-lg border border-amber-300 flex items-center justify-center text-amber-700 hover:bg-amber-50 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-amber-400">
-            <i id="musicIcon" class="fas fa-music text-lg animate-spin" style="animation-duration: 4s;"></i>
+            <i id="musicIcon" class="fas fa-music-slash text-lg text-stone-400"></i>
         </button>
-        <!-- Audio Source -->
-        <audio id="bgAudio" loop preload="auto">
-            <source src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=romantic-wedding-piano-112191.mp3" type="audio/mpeg">
-        </audio>
     </div>
 
     <div class="max-w-xl mx-auto min-h-screen my-0 md:my-6 bg-[#FFFDF9] shadow-2xl rounded-none md:rounded-3xl border-0 md:border-4 border-[#E6C687]/40 relative overflow-hidden">
@@ -250,16 +249,13 @@
                 <p class="text-xs text-stone-500 font-serif-luxury italic">Our Precious Moments</p>
             </div>
 
-            <img
-        src="https://drive.google.com/thumbnail?id=18S04QaVZRv7A1IJUi1TZ0VNDLKC9-NmD&sz=w1200"
-        alt="Gallery 3"
-        class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
-
-    <div class="absolute inset-0 bg-black/20 group-hover:bg-transparent transition duration-300"></div>
-</div> 
-   
-                </div>
-            </div>
+            <div class="rounded-2xl overflow-hidden border-2 border-amber-200 shadow-md h-64 relative group">
+                <img
+                    src="https://drive.google.com/thumbnail?id=18S04QaVZRv7A1IJUi1TZ0VNDLKC9-NmD&sz=w1200"
+                    alt="Gallery Photo"
+                    class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                <div class="absolute inset-0 bg-black/20 group-hover:bg-transparent transition duration-300"></div>
+            </div> 
         </section>
 
         <section class="px-6 py-6 bg-amber-50/40 border-t border-b border-amber-200/50">
@@ -348,6 +344,9 @@
         <span id="toastMsg">បានចម្លង Link រួចរាល់!</span>
     </div>
 
+    <!-- YouTube Iframe API Script -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+
     <script>
         // Target Engagement Date: November 1, 2026 07:00:00
         const targetDate = new Date('2026-11-01T07:00:00').getTime();
@@ -374,24 +373,56 @@
         setInterval(updateCountdown, 1000);
         updateCountdown();
 
-        // Audio Background Toggle
-        const bgAudio = document.getElementById('bgAudio');
-        const musicIcon = document.getElementById('musicIcon');
+        // --- YOUTUBE PLAYER LOGIC ---
+        let ytPlayer;
         let isPlaying = false;
 
+        // ID សម្រាប់បទ «ឱសព្វថ្ងៃនេះ» - កែវ សារ៉ាត់ (yMKBXNwDGe8)
+        const youtubeVideoId = 'yMKBXNwDGe8';
+
+        function onYouTubeIframeAPIReady() {
+            ytPlayer = new YT.Player('youtube-player', {
+                height: '0',
+                width: '0',
+                videoId: youtubeVideoId,
+                playerVars: {
+                    'autoplay': 0,
+                    'controls': 0,
+                    'loop': 1,
+                    'playlist': youtubeVideoId
+                },
+                events: {
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+        }
+
         function toggleAudio() {
+            if (!ytPlayer || typeof ytPlayer.playVideo !== 'function') return;
+
+            const musicIcon = document.getElementById('musicIcon');
             if (isPlaying) {
-                bgAudio.pause();
-                musicIcon.classList.remove('animate-spin');
+                ytPlayer.pauseVideo();
                 musicIcon.className = 'fas fa-music-slash text-lg text-stone-400';
+                musicIcon.classList.remove('animate-spin');
+                isPlaying = false;
             } else {
-                bgAudio.play().then(() => {
-                    musicIcon.className = 'fas fa-music text-lg animate-spin text-amber-600';
-                }).catch(err => {
-                    console.log("Audio autoplay prevented:", err);
-                });
+                ytPlayer.playVideo();
+                musicIcon.className = 'fas fa-music text-lg animate-spin text-amber-600';
+                isPlaying = true;
             }
-            isPlaying = !isPlaying;
+        }
+
+        function onPlayerStateChange(event) {
+            const musicIcon = document.getElementById('musicIcon');
+            if (event.data === YT.PlayerState.PLAYING) {
+                musicIcon.className = 'fas fa-music text-lg animate-spin text-amber-600';
+                isPlaying = true;
+            } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
+                musicIcon.className = 'fas fa-music-slash text-lg text-stone-400';
+                musicIcon.classList.remove('animate-spin');
+                isPlaying = false;
+            }
         }
 
         // Falling Petals Generator
